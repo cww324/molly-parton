@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { products } from "@/lib/products";
 import ProductPurchase from "@/components/product-purchase";
+import CartLink from "@/components/cart-link";
 
 type ProductPageProps = {
   params: { id: string };
@@ -20,12 +21,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         <Link href="/" className="font-display text-2xl text-black">
           Molly Parton
         </Link>
-        <Link
-          href="/cart"
-          className="rounded-full border border-black/30 px-4 py-2 text-xs tracking-[0.25em] transition hover:border-black/70"
-        >
-          Cart
-        </Link>
+        <CartLink className="rounded-full border border-black/30 px-4 py-2 text-xs tracking-[0.25em] transition hover:border-black/70" />
       </nav>
 
       <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">

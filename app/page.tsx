@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ProductCard from "@/components/product-card";
+import CartLink from "@/components/cart-link";
 import { featuredProduct, products } from "@/lib/products";
 
 export default function HomePage() {
@@ -12,12 +13,7 @@ export default function HomePage() {
           <span>Story</span>
           <span>Cart</span>
         </div>
-        <Link
-          href="/cart"
-          className="rounded-full border border-black/30 px-4 py-2 text-xs tracking-[0.25em] transition hover:border-black/70"
-        >
-          Cart
-        </Link>
+        <CartLink className="rounded-full border border-black/30 px-4 py-2 text-xs tracking-[0.25em] transition hover:border-black/70" />
       </nav>
 
       <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">

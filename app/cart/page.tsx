@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { products } from "@/lib/products";
 import { formatCurrency } from "@/lib/format";
 import CartCheckoutButton from "@/components/cart-checkout-button";
+import CartLink from "@/components/cart-link";
 import { useCart } from "@/components/cart-provider";
 
 const productLookup = new Map(products.map((product) => [product.id, product]));
@@ -37,7 +38,7 @@ export default function CartPage() {
         <Link href="/" className="font-display text-2xl text-black">
           Molly Parton
         </Link>
-        <span>Cart</span>
+        <CartLink className="text-sm uppercase tracking-[0.3em] text-black/70" />
       </nav>
 
       {cartItems.length === 0 ? (
