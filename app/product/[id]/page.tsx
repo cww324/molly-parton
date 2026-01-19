@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { products } from "@/lib/products";
 import CheckoutButton from "@/components/checkout-button";
+import CheckoutButton from "@/components/checkout-button";
 
 type ProductPageProps = {
   params: { id: string };

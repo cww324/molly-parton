@@ -33,6 +33,17 @@ export async function POST(request: Request) {
         quantity: body.quantity,
       },
     ],
+    metadata: {
+      items: JSON.stringify([
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: body.quantity,
+        },
+      ]),
+    },
+    client_reference_id: product.id,
     success_url: `${baseUrl}/?success=1`,
     cancel_url: `${baseUrl}/product/${product.id}`,
   });
