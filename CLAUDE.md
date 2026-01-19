@@ -126,6 +126,22 @@ Required:
 4. **Error handling** - Graceful failures, user-friendly error messages
 5. **Mobile-first** - Design for mobile, scale up to desktop
 
+## Branch Naming
+
+Use feature branches for larger changes; direct commits to `develop` are fine for small fixes.
+
+Format:
+- `feature/<area>-<short-description>`
+- `fix/<area>-<short-description>`
+- `chore/<area>-<short-description>`
+- `docs/<area>-<short-description>`
+
+Examples:
+- `feature/stripe-webhooks`
+- `feature/printify-integration`
+- `fix/checkout-validation`
+- `docs/deploy-notes`
+
 ## Deployment
 
 Push to `main` branch → Vercel auto-deploys.
