@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Space_Grotesk } from "next/font/google";
+import { CartProvider } from "@/components/cart-provider";
 import "./globals.css";
 
 const display = Bebas_Neue({
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body className="grain">
-        <div className="min-h-screen">{children}</div>
+        <CartProvider>
+          <div className="min-h-screen">{children}</div>
+        </CartProvider>
       </body>
     </html>
   );

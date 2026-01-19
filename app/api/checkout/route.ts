@@ -1,17 +1,32 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { products } from "@/lib/products";
+import { products, type Product } from "@/lib/products";
 
-type CheckoutRequest = {
+type CheckoutItem = {
   productId: string;
   quantity: number;
 };
 
+type CheckoutRequest = {
+  items: CheckoutItem[];
+};
+
 export async function POST(request: Request) {
   const body = (await request.json()) as CheckoutRequest;
-  const product = products.find((item) => item.id === body.productId);
+  const items = body.items ?? [];
+  const resolved = items
+    .map((item) => {
+      const product = products.find((entry) => entry.id === item.productId);
+      if (!product || item.quantity < 1) {
+        return null;
+      }
+      return { product, quantity: item.quantity };
+    })
+    .filter(
+      (item): item is { product: Product; quantity: number } => Boolean(item)
+    );
 
-  if (!product || body.quantity < 1) {
+  if (resolved.length === 0 || resolved.length !== items.length) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
@@ -20,32 +35,29 @@ export async function POST(request: Request) {
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          unit_amount: Math.round(product.price * 100),
-          product_data: {
-            name: product.name,
-            description: product.description,
-          },
+    line_items: resolved.map(({ product, quantity }) => ({
+      price_data: {
+        currency: "usd",
+        unit_amount: Math.round(product.price * 100),
+        product_data: {
+          name: product.name,
+          description: product.description,
         },
-        quantity: body.quantity,
       },
-    ],
+      quantity,
+    })),
     metadata: {
-      items: JSON.stringify([
-        {
+      items: JSON.stringify(
+        resolved.map(({ product, quantity }) => ({
           id: product.id,
           name: product.name,
           price: product.price,
-          quantity: body.quantity,
-        },
-      ]),
+          quantity,
+        }))
+      ),
     },
-    client_reference_id: product.id,
-    success_url: `${baseUrl}/?success=1`,
-    cancel_url: `${baseUrl}/product/${product.id}`,
+    success_url: `${baseUrl}/checkout/confirmation`,
+    cancel_url: `${baseUrl}/cart`,
   });
 
   return NextResponse.json({ url: session.url });

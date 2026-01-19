@@ -31,6 +31,15 @@ npm run build
 npm run lint
 ```
 
+Docker dev (preferred when available):
+```bash
+docker-compose up -d web
+docker-compose up stripe
+```
+
+If using Docker locally, prefer the compose workflow above instead of running `npm run dev` directly.
+Vercel production deploys run the Next.js app directly (no Docker in production).
+
 ## Syncing Design Images
 
 Design images are created with Fooocus on Windows. To sync new images to the repo:
@@ -147,3 +156,38 @@ Use Stripe test mode and test card numbers:
 - [Supabase Docs](https://supabase.com/docs)
 - [Stripe Checkout](https://stripe.com/docs/checkout)
 - [Printify API](https://developers.printify.com/)
+
+## Branch Naming
+
+Use feature branches for larger changes; direct commits to `develop` are fine for small fixes.
+
+Format:
+- `feature/<area>-<short-description>`
+- `fix/<area>-<short-description>`
+- `chore/<area>-<short-description>`
+- `docs/<area>-<short-description>`
+
+Examples:
+- `feature/stripe-webhooks`
+- `feature/printify-integration`
+- `fix/checkout-validation`
+- `docs/deploy-notes`
+
+## Next Session Start
+
+Status:
+- Stripe checkout + webhook endpoint implemented
+- Supabase `orders` table created
+- Stripe CLI listener runs via Docker (`stripe` service in `docker-compose.yml`)
+
+Resume from here:
+1. Ensure `.env.local` has `STRIPE_WEBHOOK_SECRET` and `SUPABASE_SERVICE_ROLE_KEY`
+2. Start dev stack: `docker-compose up -d web` and `docker-compose up stripe`
+3. Trigger test event:
+   `docker run --rm -v ~/.config/stripe:/root/.config/stripe stripe/stripe-cli:latest trigger checkout.session.completed`
+4. Verify insert in Supabase `orders` table
+
+Planned work:
+- Cart + multi-item checkout flow
+- Order confirmation page
+- Printify product sync (later)

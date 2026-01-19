@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { products } from "@/lib/products";
-import CheckoutButton from "@/components/checkout-button";
-import CheckoutButton from "@/components/checkout-button";
+import ProductPurchase from "@/components/product-purchase";
 
 type ProductPageProps = {
   params: { id: string };
@@ -67,7 +66,10 @@ export default function ProductPage({ params }: ProductPageProps) {
             <span>${product.price}</span>
             <span>Ships in 3-5 days</span>
           </div>
-          <CheckoutButton productId={product.id} />
+          <ProductPurchase
+            productId={product.id}
+            productName={product.name}
+          />
           <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-sm">
             <p className="text-xs uppercase tracking-[0.3em] text-black/60">
               Why this blank
