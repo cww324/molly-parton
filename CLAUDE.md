@@ -160,6 +160,8 @@ Current status:
 - Supabase + Stripe environment variables are configured.
 - Stripe is still in test mode, so real charges/orders are not live yet.
 - Printify keys are not set; fulfillment is not wired up.
+- Google Analytics is wired in `app/layout.tsx` via `NEXT_PUBLIC_GA_ID`.
+- Reminder: add `NEXT_PUBLIC_GA_ID=G-CLTTKEMTLF` in Vercel (Production) and redeploy.
 
 For environment variables:
 1. Go to Vercel dashboard → Project → Settings → Environment Variables
