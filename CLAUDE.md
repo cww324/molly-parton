@@ -134,10 +134,16 @@ Required:
 3. **TypeScript strict mode** - No `any` types unless absolutely necessary
 4. **Error handling** - Graceful failures, user-friendly error messages
 5. **Mobile-first** - Design for mobile, scale up to desktop
+6. **Commit often** - Use small, descriptive commits to highlight progress for portfolio/recruiting
 
 ## Deployment
 
 Push to `main` branch → Vercel auto-deploys.
+
+Current status:
+- Supabase + Stripe environment variables are configured.
+- Stripe is still in test mode, so real charges/orders are not live yet.
+- Printify keys are not set; fulfillment is not wired up.
 
 For environment variables:
 1. Go to Vercel dashboard → Project → Settings → Environment Variables

@@ -22,6 +22,58 @@ Prompts for AI-generated t-shirt and sweatshirt designs. The vibe: festival ener
 
 ### Psychedelic Cowgirl (Core Brand)
 
+
+```
+
+***ASPECT RATIO***
+768x1280
+
+***ACTUAL PROMPT***
+retro 1970s cosmic cowgirl illustration with big blonde hair,
+psychedelic western vibe,
+surrounded by mushrooms and stars,
+vintage screen print t-shirt graphic,
+simple bold lines,
+isolated floating subject,
+no background, negative space,
+edges softly feathered and fading into transparency,
+limited neon pink and turquoise color palette,
+high contrast,
+designed for apparel printing
+
+
+***NEGATIVE PROMPT***
+background,
+white background,
+rectangle,
+square,
+poster,
+frame,
+border,
+canvas,
+wallpaper,
+full scene,
+landscape,
+horizon,
+ground,
+photo,
+photorealistic,
+realistic,
+3d render,
+cgi,
+soft gradients,
+airbrush,
+glow effects,
+lens flare,
+depth of field,
+blurry,
+overly detailed,
+text,
+watermark,
+logo
+
+```
+
 ```
 retro 70s illustration of a cosmic cowgirl with big blonde hair,
 surrounded by mushrooms and stars, vibrant neon pink and turquoise,
@@ -31,7 +83,7 @@ vintage poster style, simple bold lines, t-shirt design, white background
 ```
 psychedelic portrait of a rhinestone cowgirl, melting rainbow colors,
 70s disco meets country western, bold graphic style, limited colors,
-screen print aesthetic, white background
+screen print aesthetic, transparent background
 ```
 
 ```
