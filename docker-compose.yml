@@ -8,3 +8,10 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
+  stripe:
+    image: stripe/stripe-cli:latest
+    command: listen --forward-to http://web:3000/api/stripe/webhook
+    volumes:
+      - ~/.config/stripe:/root/.config/stripe
+    depends_on:
+      - web
