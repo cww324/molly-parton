@@ -13,6 +13,7 @@ export default function EmailSignupForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<keyof typeof statusCopy>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const isSuccess = status === "success";
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,7 +70,11 @@ export default function EmailSignupForm() {
         </button>
       </div>
       {message ? (
-        <p className="text-xs uppercase tracking-[0.25em] text-black/50">
+        <p
+          className={`text-xs uppercase tracking-[0.25em] text-black/50 ${
+            isSuccess ? "success-pop success-sparkle text-black/70" : ""
+          }`}
+        >
           {message}
         </p>
       ) : null}
