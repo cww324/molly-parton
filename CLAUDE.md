@@ -10,7 +10,7 @@ Molly Parton is a festival-inspired clothing e-commerce site. It's both a real b
 
 ## Tech Stack
 
-- **Framework:** Next.js 14+ (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **Hosting:** Vercel
 - **Database:** Supabase (PostgreSQL)
 - **Auth:** Supabase Auth (if needed, defer until Stage 3)
@@ -56,39 +56,55 @@ When user says "sync photos" or similar, run this command.
 ```
 molly-parton/
 ├── app/                    # Next.js App Router pages
-│   ├── page.tsx           # Home / product listing
-│   ├── product/[id]/      # Product detail pages
+│   ├── page.tsx           # Home / landing page
+│   ├── shop/              # Product listing (fetches from DB)
+│   ├── product/[slug]/    # Product detail pages (by slug)
 │   ├── cart/              # Shopping cart
 │   ├── checkout/          # Stripe checkout
 │   └── api/               # API routes
+│       ├── admin/         # Admin endpoints (shops, sync-products)
+│       ├── products/      # Product lookup by ID
 │       ├── stripe/        # Stripe webhooks
-│       └── orders/        # Order management
+│       └── checkout/      # Checkout session creation
 ├── components/            # React components
+│   ├── cart-provider.tsx  # Cart context (supports variants)
+│   ├── product-card.tsx   # Product card with images
+│   ├── product-purchase.tsx # Add to cart with variant selection
+│   └── variant-selector.tsx # Size/variant dropdown
 ├── lib/                   # Utilities, API clients
 │   ├── supabase.ts       # Supabase client
 │   ├── stripe.ts         # Stripe utilities
-│   └── printify.ts       # Printify API client
+│   ├── printify.ts       # Printify API client
+│   └── products-db.ts    # Product database queries
 ├── types/                 # TypeScript types
+│   └── product.ts        # Product types for Printify + DB
 └── public/               # Static assets
 ```
 
 ## Database Schema (Supabase)
 
+**Products table** (for Printify sync):
 ```sql
--- Products (can also sync from Printify)
 create table products (
   id uuid primary key default gen_random_uuid(),
-  printify_id text unique,
+  printify_id text unique not null,
+  slug text unique not null,
   title text not null,
   description text,
-  price decimal(10,2) not null,
-  images text[],
-  variants jsonb,
+  tags text[] default '{}',
+  images jsonb default '[]',
+  variants jsonb default '[]',
   active boolean default true,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
--- Orders
+create index products_slug_idx on products(slug);
+create index products_active_idx on products(active) where active = true;
+```
+
+**Orders table** (already created):
+```sql
 create table orders (
   id uuid primary key default gen_random_uuid(),
   stripe_session_id text unique,
@@ -104,17 +120,24 @@ create table orders (
 
 ## Key Implementation Notes
 
-### Stripe Checkout Flow
-1. User clicks "Buy" → create Stripe Checkout Session (server-side)
-2. Redirect to Stripe's hosted checkout page
-3. Stripe webhook confirms payment → save order to Supabase
-4. Trigger Printify order via API
+### Stripe + Printify Payment Flow
+1. User selects product + variant (size) → adds to cart
+2. User clicks checkout → create Stripe Checkout Session (server-side)
+3. Redirect to Stripe's hosted checkout page
+4. Stripe webhook confirms payment → save order to Supabase
+5. (TODO) Trigger Printify order via API
+6. Printify handles printing + shipping
 
 ### Printify Integration
-- Use Printify API to fetch product catalog
-- Or manually add products if catalog is small
-- On successful payment, POST to Printify to create order
-- Printify handles printing + shipping
+- `lib/printify.ts` - API client with `getShops()`, `getProducts()`, `getProduct()`
+- `app/api/admin/shops` - GET endpoint to find Shop ID
+- `app/api/admin/sync-products` - POST endpoint to sync Printify → Supabase
+- Shop ID: `26168397` (configured in `.env.local`)
+
+### Cart System
+- Cart now tracks `{ productId, variantId, quantity }` for variant support
+- Cart context provides safe defaults for SSR (no throwing during build)
+- Prices come from selected variant, not hardcoded
 
 ### Environment Variables
 Never commit secrets. Use `.env.local` for development, Vercel environment variables for production.
@@ -122,10 +145,12 @@ Never commit secrets. Use `.env.local` for development, Vercel environment varia
 Required:
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (server-side)
 - `STRIPE_SECRET_KEY` - Stripe secret (server-side only)
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
-- `PRINTIFY_API_KEY` - Printify API token
 - `STRIPE_WEBHOOK_SECRET` - For verifying Stripe webhooks
+- `PRINTIFY_API_KEY` - Printify API token
+- `PRINTIFY_SHOP_ID` - Printify shop ID (`26168397`)
 
 ## Coding Guidelines
 
@@ -146,26 +171,19 @@ Format:
 - `chore/<area>-<short-description>`
 - `docs/<area>-<short-description>`
 
-Examples:
-- `feature/stripe-webhooks`
-- `feature/printify-integration`
-- `fix/checkout-validation`
-- `docs/deploy-notes`
-
 ## Deployment
 
 Push to `main` branch → Vercel auto-deploys.
 
 Current status:
-- Supabase + Stripe environment variables are configured.
-- Stripe is still in test mode, so real charges/orders are not live yet.
-- Printify keys are not set; fulfillment is not wired up.
-- Google Analytics is wired in `app/layout.tsx` via `NEXT_PUBLIC_GA_ID`.
-- Reminder: add `NEXT_PUBLIC_GA_ID=G-CLTTKEMTLF` in Vercel (Production) and redeploy.
+- Supabase + Stripe environment variables are configured
+- Stripe is still in test mode
+- Printify API key and Shop ID are configured
+- Google Analytics is wired in `app/layout.tsx` via `NEXT_PUBLIC_GA_ID`
 
 For environment variables:
 1. Go to Vercel dashboard → Project → Settings → Environment Variables
-2. Add all required variables
+2. Add all required variables (including `PRINTIFY_API_KEY` and `PRINTIFY_SHOP_ID`)
 3. Redeploy if needed
 
 ## Testing Stripe
@@ -181,37 +199,66 @@ Use Stripe test mode and test card numbers:
 - [Stripe Checkout](https://stripe.com/docs/checkout)
 - [Printify API](https://developers.printify.com/)
 
-## Branch Naming
+---
 
-Use feature branches for larger changes; direct commits to `develop` are fine for small fixes.
+## Known Issues
 
-Format:
-- `feature/<area>-<short-description>`
-- `fix/<area>-<short-description>`
-- `chore/<area>-<short-description>`
-- `docs/<area>-<short-description>`
+### Docker Build Error (Static Generation)
+The production build (`npm run build`) fails during static page generation with this error:
+```
+Error: <Html> should not be imported outside of pages/_document.
+```
 
-Examples:
-- `feature/stripe-webhooks`
-- `feature/printify-integration`
-- `fix/checkout-validation`
-- `docs/deploy-notes`
+This error occurs on:
+- `/_error: /404`
+- `/_error: /500`
+- `/_not-found/page`
+- `/cart/page`
+- `/checkout/confirmation/page`
+- `/page` (home)
+
+**What we know:**
+- This is NOT caused by the Printify integration changes
+- The error occurred even on the original code before changes
+- Upgrading from Next.js 14.2.5 to 15.1.6 did not fix it
+- The dev server (`npm run dev`) works fine
+- May work differently on Vercel since Vercel handles builds differently
+
+**Workaround:**
+- The dev server works - use `docker-compose up -d web` for local development
+- Try deploying to Vercel to see if production builds work there
+
+---
 
 ## Next Session Start
 
-Status:
-- Stripe checkout + webhook endpoint implemented
-- Supabase `orders` table created
-- Stripe CLI listener runs via Docker (`stripe` service in `docker-compose.yml`)
+**Current branch:** `feature/printify-integration`
 
-Resume from here:
-1. Ensure `.env.local` has `STRIPE_WEBHOOK_SECRET` and `SUPABASE_SERVICE_ROLE_KEY`
-2. Start dev stack: `docker-compose up -d web` and `docker-compose up stripe`
-3. Trigger test event:
-   `docker run --rm -v ~/.config/stripe:/root/.config/stripe stripe/stripe-cli:latest trigger checkout.session.completed`
-4. Verify insert in Supabase `orders` table
+### What was completed:
+1. Created Printify API client (`lib/printify.ts`)
+2. Created admin endpoints for shop lookup and product sync
+3. Created product types (`types/product.ts`) and DB access layer (`lib/products-db.ts`)
+4. Updated shop page to fetch products from database
+5. Created new `[slug]` product route with variant support
+6. Updated cart provider to track variants (`productId`, `variantId`, `quantity`)
+7. Updated checkout API to look up products from database
+8. Created variant selector component
+9. Updated product card to show real images
+10. Added Printify image domains to next.config.js
+11. Upgraded to Next.js 15 and React 19
+12. Fixed webhook route for Next.js 15 async headers
 
-Planned work:
-- Cart + multi-item checkout flow
-- Order confirmation page
-- Printify product sync (later)
+### What still needs to be done:
+1. **Create the products table in Supabase** - Run the SQL from "Database Schema" section above
+2. **Sync products from Printify** - Call `POST /api/admin/sync-products` after creating the table
+3. **Test the full flow** - Add product to cart, checkout, verify order in Supabase
+4. **Fix the build error** - Investigate the `<Html>` error or test if Vercel handles it differently
+5. **Wire up Printify order creation** - After successful payment, create order in Printify
+6. **Delete old files** - `lib/products.ts` (old hardcoded products) can be deleted after verification
+
+### To resume:
+1. Start dev server: `docker-compose up -d web`
+2. Create products table in Supabase dashboard (run SQL above)
+3. Sync products: `curl -X POST http://localhost:3000/api/admin/sync-products`
+4. Visit `http://localhost:3000/shop` to see real products
+5. Test add to cart and checkout flow
