@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { products } from "@/lib/products";
+import { getProducts } from "@/lib/products-db";
 import ProductCard from "@/components/product-card";
 import CartLink from "@/components/cart-link";
+import type { Product } from "@/types/product";
 
 export const metadata = {
   title: "Shop | Molly Parton",
@@ -9,7 +10,19 @@ export const metadata = {
     "Festival-inspired clothing celebrating self-expression, freedom, and the feral joy of letting go.",
 };
 
-export default function ShopPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ShopPage() {
+  let products: Product[] = [];
+  let hasCatalogError = false;
+
+  try {
+    products = await getProducts();
+  } catch (error) {
+    hasCatalogError = true;
+    console.error("Failed to fetch products for shop", error);
+  }
+
   return (
     <main className="grain mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 py-10 lg:px-10">
       <nav className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-black/70">
@@ -35,11 +48,23 @@ export default function ShopPage() {
         </p>
       </section>
 
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </section>
+      {hasCatalogError ? (
+        <section className="rounded-[28px] border border-ember/30 bg-ember/10 p-6 text-sm text-ember">
+          Shop is not ready yet. Create the `products` table in Supabase and run
+          the Printify sync endpoint.
+        </section>
+      ) : (
+        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+          {products.length === 0 ? (
+            <div className="rounded-[28px] border border-black/10 bg-white/80 p-8 text-sm text-black/70 sm:col-span-2 lg:col-span-3">
+              No products found. Run product sync after your catalog is ready.
+            </div>
+          ) : null}
+        </section>
+      )}
 
       <footer className="mt-auto flex flex-col items-center gap-3 pb-10 pt-8 text-xs uppercase tracking-[0.3em] text-black/50">
         <Link href="/" className="transition hover:text-black/70">
