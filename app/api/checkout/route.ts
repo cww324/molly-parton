@@ -22,6 +22,13 @@ type ResolvedItem = {
 };
 
 export async function POST(request: Request) {
+  if (process.env.CHECKOUT_DISABLED === "true") {
+    return NextResponse.json(
+      { error: "Checkout is temporarily disabled." },
+      { status: 503 }
+    );
+  }
+
   const body = (await request.json()) as CheckoutRequest;
   const items = body.items ?? [];
 
