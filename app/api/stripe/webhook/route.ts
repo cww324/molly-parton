@@ -206,13 +206,14 @@ export async function POST(request: Request) {
         .update({
           printify_order_id: printifyOrder.id,
           status: "sent_to_production",
+          printify_error: null,
         })
         .eq("stripe_session_id", session.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Printify error";
       await supabaseServer
         .from("orders")
-        .update({ status: "printify_error" })
+        .update({ status: "printify_error", printify_error: message })
         .eq("stripe_session_id", session.id);
 
       return NextResponse.json({ error: message }, { status: 500 });
