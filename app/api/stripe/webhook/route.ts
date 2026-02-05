@@ -110,12 +110,14 @@ export async function POST(request: Request) {
 
     const customerEmail =
       session.customer_details?.email ?? session.customer_email ?? null;
+    const shippingDetails =
+      session.shipping_details ?? session.customer_details ?? null;
 
     const { error: upsertError } = await supabaseServer.from("orders").upsert(
       {
         stripe_session_id: session.id,
         customer_email: customerEmail ?? "unknown",
-        shipping_address: session.shipping_details ?? {},
+        shipping_address: shippingDetails ?? {},
         items,
         total,
         status: "paid",
