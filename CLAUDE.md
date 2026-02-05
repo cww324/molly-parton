@@ -10,7 +10,7 @@ Molly Parton is a festival-inspired clothing e-commerce site. It's both a real b
 
 ## Tech Stack
 
-- **Framework:** Next.js 15 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **Hosting:** Vercel
 - **Database:** Supabase (PostgreSQL)
 - **Auth:** Supabase Auth (if needed, defer until Stage 3)
@@ -117,6 +117,10 @@ create table orders (
   created_at timestamptz default now()
 );
 ```
+```sql
+alter table orders
+add column if not exists printify_error text;
+```
 
 ## Key Implementation Notes
 
@@ -125,11 +129,12 @@ create table orders (
 2. User clicks checkout → create Stripe Checkout Session (server-side)
 3. Redirect to Stripe's hosted checkout page
 4. Stripe webhook confirms payment → save order to Supabase
-5. (TODO) Trigger Printify order via API
+5. Stripe webhook creates Printify order and sends to production
 6. Printify handles printing + shipping
 
 ### Printify Integration
 - `lib/printify.ts` - API client with `getShops()`, `getProducts()`, `getProduct()`
+- Added `createOrder()` and `sendOrderToProduction()` for fulfillment
 - `app/api/admin/shops` - GET endpoint to find Shop ID
 - `app/api/admin/sync-products` - POST endpoint to sync Printify → Supabase
 - Shop ID: `26168397` (configured in `.env.local`)
@@ -151,6 +156,8 @@ Required:
 - `STRIPE_WEBHOOK_SECRET` - For verifying Stripe webhooks
 - `PRINTIFY_API_KEY` - Printify API token
 - `PRINTIFY_SHOP_ID` - Printify shop ID (`26168397`)
+- `NEXT_PUBLIC_SITE_URL` - Production URL (e.g. `https://mollyparton.com`)
+- `CHECKOUT_DISABLED` - Set to `true` to disable checkout API
 
 ## Coding Guidelines
 
@@ -173,18 +180,16 @@ Format:
 
 ## Deployment
 
-Push to `main` branch → Vercel auto-deploys.
+Production currently deploys from `main` (verify in Vercel Git settings). Preview uses `develop`.
 
-Current status:
-- Supabase + Stripe environment variables are configured
-- Stripe is still in test mode
-- Printify API key and Shop ID are configured
-- Google Analytics is wired in `app/layout.tsx` via `NEXT_PUBLIC_GA_ID`
+Important:
+- Vercel preview deployments are protected; Stripe webhooks will fail with 401 unless you use production domain or bypass token.
+- Stripe webhook must point to the same domain as checkout (test vs live).
 
 For environment variables:
-1. Go to Vercel dashboard → Project → Settings → Environment Variables
+1. Vercel dashboard → Project → Settings → Environment Variables
 2. Add all required variables (including `PRINTIFY_API_KEY` and `PRINTIFY_SHOP_ID`)
-3. Redeploy if needed
+3. Redeploy after changes
 
 ## Testing Stripe
 
@@ -203,36 +208,14 @@ Use Stripe test mode and test card numbers:
 
 ## Known Issues
 
-### Docker Build Error (Static Generation)
-The production build (`npm run build`) fails during static page generation with this error:
-```
-Error: <Html> should not be imported outside of pages/_document.
-```
-
-This error occurs on:
-- `/_error: /404`
-- `/_error: /500`
-- `/_not-found/page`
-- `/cart/page`
-- `/checkout/confirmation/page`
-- `/page` (home)
-
-**What we know:**
-- This is NOT caused by the Printify integration changes
-- The error occurred even on the original code before changes
-- Upgrading from Next.js 14.2.5 to 15.1.6 did not fix it
-- The dev server (`npm run dev`) works fine
-- May work differently on Vercel since Vercel handles builds differently
-
-**Workaround:**
-- The dev server works - use `docker-compose up -d web` for local development
-- Try deploying to Vercel to see if production builds work there
+- If `printify_order_id` is null and `printify_error` is null, production likely lacks `PRINTIFY_API_KEY` / `PRINTIFY_SHOP_ID` or is on an old deploy.
+- Stripe checkout must include shipping options to force address collection.
 
 ---
 
 ## Next Session Start
 
-**Current branch:** `feature/printify-integration`
+**Current branches:** `develop` and `main` (production)
 
 ### What was completed:
 1. Created Printify API client (`lib/printify.ts`)
@@ -245,16 +228,17 @@ This error occurs on:
 8. Created variant selector component
 9. Updated product card to show real images
 10. Added Printify image domains to next.config.js
-11. Upgraded to Next.js 15 and React 19
-12. Fixed webhook route for Next.js 15 async headers
+11. Upgraded to Next.js 16.1.6 and React 19.2.4
+12. Added Printify order creation + send to production in Stripe webhook
+13. Webhook now stores `printify_error` on failure
+14. Checkout now enforces shipping address collection
+15. Checkout can be disabled via `CHECKOUT_DISABLED=true`
 
 ### What still needs to be done:
-1. **Create the products table in Supabase** - Run the SQL from "Database Schema" section above
-2. **Sync products from Printify** - Call `POST /api/admin/sync-products` after creating the table
-3. **Test the full flow** - Add product to cart, checkout, verify order in Supabase
-4. **Fix the build error** - Investigate the `<Html>` error or test if Vercel handles it differently
-5. **Wire up Printify order creation** - After successful payment, create order in Printify
-6. **Delete old files** - `lib/products.ts` (old hardcoded products) can be deleted after verification
+1. Verify production env vars include `PRINTIFY_API_KEY` and `PRINTIFY_SHOP_ID`
+2. Confirm production deploy is on latest main commit
+3. Test a new checkout and ensure `printify_order_id` is populated
+4. If failing, check `orders.printify_error` for the exact Printify error
 
 ### To resume:
 1. Start dev server: `docker-compose up -d web`
