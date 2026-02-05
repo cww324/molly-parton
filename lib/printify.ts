@@ -85,6 +85,42 @@ export type PrintifyProductsResponse = {
   total: number;
 };
 
+export type PrintifyOrderLineItem = {
+  product_id: string;
+  variant_id: number;
+  quantity: number;
+};
+
+export type PrintifyOrderAddress = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  country: string;
+  region: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  zip: string;
+};
+
+export type PrintifyOrderCreate = {
+  external_id: string;
+  line_items: PrintifyOrderLineItem[];
+  shipping_method: number;
+  send_shipping_notification: boolean;
+  address_to: PrintifyOrderAddress;
+  is_printify_express?: boolean;
+  is_economy_shipping?: boolean;
+};
+
+export type PrintifyOrderResponse = {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function getShops(): Promise<PrintifyShop[]> {
   return printifyFetch<PrintifyShop[]>("/shops.json");
 }
@@ -113,4 +149,26 @@ export async function getProduct(
   return printifyFetch<PrintifyProduct>(
     `/shops/${shopId}/products/${productId}.json`
   );
+}
+
+export async function createOrder(
+  shopId: string,
+  payload: PrintifyOrderCreate
+): Promise<PrintifyOrderResponse> {
+  return printifyFetch<PrintifyOrderResponse>(
+    `/shops/${shopId}/orders.json`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function sendOrderToProduction(
+  shopId: string,
+  orderId: string
+): Promise<void> {
+  await printifyFetch(`/shops/${shopId}/orders/${orderId}/send_to_production.json`, {
+    method: "POST",
+  });
 }
