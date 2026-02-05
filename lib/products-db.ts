@@ -52,6 +52,23 @@ export async function getProductById(id: string): Promise<Product | null> {
   return toProduct(data as DbProduct);
 }
 
+export async function getDbProductById(id: string): Promise<DbProduct | null> {
+  const { data, error } = await supabaseServer
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      return null;
+    }
+    throw new Error(`Failed to fetch product: ${error.message}`);
+  }
+
+  return data as DbProduct;
+}
+
 export async function upsertProduct(product: DbProductInsert): Promise<void> {
   const { error } = await supabaseServer.from("products").upsert(
     {

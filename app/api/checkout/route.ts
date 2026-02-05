@@ -66,6 +66,9 @@ export async function POST(request: Request) {
       },
       quantity,
     })),
+    shipping_address_collection: {
+      allowed_countries: ["US"],
+    },
     metadata: {
       items: JSON.stringify(
         resolved.map(({ product, variantId, variantTitle, price, quantity }) => ({
