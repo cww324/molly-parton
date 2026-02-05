@@ -11,26 +11,39 @@ import {
 
 type CartItem = {
   productId: string;
+  variantId: number;
   quantity: number;
 };
 
 type CartContextValue = {
   items: CartItem[];
   totalQuantity: number;
-  addItem: (productId: string, quantity?: number) => void;
-  updateItem: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  addItem: (productId: string, variantId: number, quantity?: number) => void;
+  updateItem: (productId: string, variantId: number, quantity: number) => void;
+  removeItem: (productId: string, variantId: number) => void;
   clearCart: () => void;
 };
 
-const CartContext = createContext<CartContextValue | undefined>(undefined);
 const STORAGE_KEY = "molly-parton-cart";
+
+// Default value for SSR - provides safe no-op functions
+const defaultCartValue: CartContextValue = {
+  items: [],
+  totalQuantity: 0,
+  addItem: () => {},
+  updateItem: () => {},
+  removeItem: () => {},
+  clearCart: () => {},
+};
+
+const CartContext = createContext<CartContextValue>(defaultCartValue);
 
 function normalizeItems(items: CartItem[]) {
   return items
-    .filter((item) => item.quantity > 0)
+    .filter((item) => item.quantity > 0 && item.variantId)
     .map((item) => ({
       productId: item.productId,
+      variantId: item.variantId,
       quantity: Math.max(1, Math.floor(item.quantity)),
     }));
 }
@@ -68,34 +81,52 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hasLoaded]);
 
   const value = useMemo<CartContextValue>(() => {
-    const addItem = (productId: string, quantity = 1) => {
+    const addItem = (productId: string, variantId: number, quantity = 1) => {
       setItems((prev) => {
-        const existing = prev.find((item) => item.productId === productId);
+        const existing = prev.find(
+          (item) => item.productId === productId && item.variantId === variantId
+        );
         if (!existing) {
-          return [...prev, { productId, quantity }];
+          return [...prev, { productId, variantId, quantity }];
         }
         return prev.map((item) =>
-          item.productId === productId
+          item.productId === productId && item.variantId === variantId
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       });
     };
 
-    const updateItem = (productId: string, quantity: number) => {
+    const updateItem = (
+      productId: string,
+      variantId: number,
+      quantity: number
+    ) => {
       if (quantity <= 0) {
-        setItems((prev) => prev.filter((item) => item.productId !== productId));
+        setItems((prev) =>
+          prev.filter(
+            (item) =>
+              !(item.productId === productId && item.variantId === variantId)
+          )
+        );
         return;
       }
       setItems((prev) =>
         prev.map((item) =>
-          item.productId === productId ? { ...item, quantity } : item
+          item.productId === productId && item.variantId === variantId
+            ? { ...item, quantity }
+            : item
         )
       );
     };
 
-    const removeItem = (productId: string) => {
-      setItems((prev) => prev.filter((item) => item.productId !== productId));
+    const removeItem = (productId: string, variantId: number) => {
+      setItems((prev) =>
+        prev.filter(
+          (item) =>
+            !(item.productId === productId && item.variantId === variantId)
+        )
+      );
     };
 
     const clearCart = () => {
@@ -114,11 +145,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within CartProvider");
-  }
-  return context;
+  return useContext(CartContext);
 }
 
 export type { CartItem };

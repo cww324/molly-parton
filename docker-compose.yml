@@ -5,9 +5,10 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
-      - /app/node_modules
-    environment:
-      NODE_ENV: development
+      - web_node_modules:/app/node_modules
+    tmpfs:
+      - /app/.next:uid=1000,gid=1000,mode=1777
+    user: "${UID:-1000}:${GID:-1000}"
   stripe:
     image: stripe/stripe-cli:latest
     command: listen --forward-to http://web:3000/api/stripe/webhook
@@ -15,3 +16,6 @@ services:
       - ~/.config/stripe:/root/.config/stripe
     depends_on:
       - web
+
+volumes:
+  web_node_modules:
