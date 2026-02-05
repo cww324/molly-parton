@@ -129,15 +129,16 @@ add column if not exists printify_error text;
 2. User clicks checkout → create Stripe Checkout Session (server-side)
 3. Redirect to Stripe's hosted checkout page
 4. Stripe webhook confirms payment → save order to Supabase
-5. Stripe webhook creates Printify order and sends to production
-6. Printify handles printing + shipping
+5. Stripe webhook creates Printify order (status: "order_created")
+6. Printify auto-submits order to production after 1 hour (configured in Printify settings)
+7. Printify handles printing + shipping
 
 ### Printify Integration
-- `lib/printify.ts` - API client with `getShops()`, `getProducts()`, `getProduct()`
-- Added `createOrder()` and `sendOrderToProduction()` for fulfillment
+- `lib/printify.ts` - API client with `getShops()`, `getProducts()`, `getProduct()`, `createOrder()`
 - `app/api/admin/shops` - GET endpoint to find Shop ID
 - `app/api/admin/sync-products` - POST endpoint to sync Printify → Supabase
 - Shop ID: `26168397` (configured in `.env.local`)
+- **Important:** Printify is set to auto-submit orders 1 hour after creation. Do not call `sendOrderToProduction()` manually.
 
 ### Cart System
 - Cart now tracks `{ productId, variantId, quantity }` for variant support
@@ -208,41 +209,37 @@ Use Stripe test mode and test card numbers:
 
 ## Known Issues
 
-- If `printify_order_id` is null and `printify_error` is null, production likely lacks `PRINTIFY_API_KEY` / `PRINTIFY_SHOP_ID` or is on an old deploy.
 - Stripe checkout must include shipping options to force address collection.
+- Orders take ~1 hour to reach Printify production (auto-submit delay configured in Printify).
 
 ---
 
-## Next Session Start
+## Current Status (Feb 2026)
 
-**Current branches:** `develop` and `main` (production)
+**Site is LIVE and accepting payments!**
 
-### What was completed:
-1. Created Printify API client (`lib/printify.ts`)
-2. Created admin endpoints for shop lookup and product sync
-3. Created product types (`types/product.ts`) and DB access layer (`lib/products-db.ts`)
-4. Updated shop page to fetch products from database
-5. Created new `[slug]` product route with variant support
-6. Updated cart provider to track variants (`productId`, `variantId`, `quantity`)
-7. Updated checkout API to look up products from database
-8. Created variant selector component
-9. Updated product card to show real images
-10. Added Printify image domains to next.config.js
-11. Upgraded to Next.js 16.1.6 and React 19.2.4
-12. Added Printify order creation + send to production in Stripe webhook
-13. Webhook now stores `printify_error` on failure
-14. Checkout now enforces shipping address collection
-15. Checkout can be disabled via `CHECKOUT_DISABLED=true`
+- Production URL: https://mollyparton.com
+- Checkout: Working (Stripe live mode)
+- Fulfillment: Working (Printify auto-submits orders after 1 hour)
+- Orders tracked in Supabase with status `order_created`
 
-### What still needs to be done:
-1. Verify production env vars include `PRINTIFY_API_KEY` and `PRINTIFY_SHOP_ID`
-2. Confirm production deploy is on latest main commit
-3. Test a new checkout and ensure `printify_order_id` is populated
-4. If failing, check `orders.printify_error` for the exact Printify error
+### Order Status Values
+- `paid` - Payment received, processing
+- `order_created` - Order created in Printify, waiting for auto-submit
+- `printify_error` - Failed to create Printify order (check `printify_error` column)
+- `needs_shipping` - Missing shipping address
+- `missing_product` - Product not found in database
 
-### To resume:
+### To resume development:
 1. Start dev server: `docker-compose up -d web`
-2. Create products table in Supabase dashboard (run SQL above)
-3. Sync products: `curl -X POST http://localhost:3000/api/admin/sync-products`
-4. Visit `http://localhost:3000/shop` to see real products
-5. Test add to cart and checkout flow
+2. Stripe webhook testing: `docker-compose up stripe`
+3. Sync products from Printify: `curl -X POST http://localhost:3000/api/admin/sync-products`
+
+### Useful commands:
+```sql
+-- Check recent orders
+SELECT id, status, printify_order_id, printify_error, created_at FROM orders ORDER BY created_at DESC;
+
+-- Clear test orders
+DELETE FROM orders;
+```
