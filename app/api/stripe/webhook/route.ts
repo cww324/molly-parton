@@ -5,7 +5,6 @@ import { stripe } from "@/lib/stripe";
 import { supabaseServer } from "@/lib/supabase";
 import {
   createOrder,
-  sendOrderToProduction,
   type PrintifyOrderAddress,
 } from "@/lib/printify";
 import { getDbProductById } from "@/lib/products-db";
@@ -250,16 +249,13 @@ export async function POST(request: Request) {
       });
 
       console.log("[webhook] Printify order created:", printifyOrder.id);
-      console.log("[webhook] Sending to production...");
+      console.log("[webhook] SUCCESS: Order created in Printify (auto-submits in 1 hour)");
 
-      await sendOrderToProduction(shopId, printifyOrder.id);
-
-      console.log("[webhook] SUCCESS: Order sent to production");
       await supabaseServer
         .from("orders")
         .update({
           printify_order_id: printifyOrder.id,
-          status: "sent_to_production",
+          status: "order_created",
           printify_error: null,
         })
         .eq("stripe_session_id", session.id);
